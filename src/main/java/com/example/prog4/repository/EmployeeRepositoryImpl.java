@@ -1,42 +1,40 @@
 package com.example.prog4.repository;
 
-import com.example.prog4.model.exception.NotFoundException;
+import com.example.prog4.model.EmployeeFilter;
+import com.example.prog4.repository.base.BaseEmployeeRepository;
 import com.example.prog4.repository.base.entity.Employee;
-import java.util.Optional;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.example.prog4.repository.cnaps.CnapsEmployeeRepository;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class EmployeeRepositoryImpl implements EmployeeRepository {
-  private final com.example.prog4.repository.base.EmployeeRepository baseEmployeeRepository;
-  private final com.example.prog4.repository.cnaps.EmployeeRepository cnapsEmployeeRepository;
+@Primary
+@AllArgsConstructor
+public class EmployeeRepositoryImpl extends NotImplementedEmployeeRepositoryImpl {
+  private final BaseEmployeeRepository baseEmployeeRepository;
+  private final CnapsEmployeeRepository cnapsEmployeeRepository;
 
-  public EmployeeRepositoryImpl(
-      @Qualifier("baseEmployeeRepository")
-      com.example.prog4.repository.base.EmployeeRepository baseEmployeeRepository,
-      @Qualifier("cnapsEmployeeRepository")
-      com.example.prog4.repository.cnaps.EmployeeRepository cnapsEmployeeRepository) {
-    this.baseEmployeeRepository = baseEmployeeRepository;
-    this.cnapsEmployeeRepository = cnapsEmployeeRepository;
-  }
 
   @Override
   public Employee findById(String id) {
-    Optional<Employee> base = baseEmployeeRepository.findById(id);
-    if (base.isEmpty()) {
-      throw new NotFoundException("Employee.Id=" + id + " was not found");
-    }
-    Optional<com.example.prog4.repository.cnaps.entity.Employee> cnaps =
+    Employee base = baseEmployeeRepository.findById(id);
+    com.example.prog4.repository.cnaps.entity.Employee cnaps =
         cnapsEmployeeRepository.findByEndToEndId(id);
-    Employee result;
-    result = base.get();
-    cnaps.ifPresent(employee -> result.setCnaps(employee.getNumber()));
-
-    return result;
+    if (cnaps != null) {
+      base.setCnaps(cnaps.getNumber());
+    }
+    return base;
   }
 
   @Override
   public Employee save(Employee employee) {
     return baseEmployeeRepository.save(employee);
+  }
+
+  @Override
+  public List<Employee> findByCriteria(EmployeeFilter filter) {
+    return baseEmployeeRepository.findByCriteria(filter);
   }
 }
